@@ -1,240 +1,159 @@
 const fs = require('fs')
 const readline = require('readline')
+const child_process = require('child_process')
+
+const { spawn } = require('child_process')
 
 const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+  input: process.stdin,
+  output: process.stdout,
+})
 
-rl.question('What would you like to do ? ', function (action) {
-    promptcases(action)
-    // rl.question('Where do you live ? ', function (country) {
-    //     console.log(`${action}, is a citizen of ${country}`);
-    //     //   rl.close();
-    // });
-});
-
-rl.on('close', function () {
-    console.log('\nBYE BYE !!!');
-    process.exit(0);
-});
-
+// defauklt and continuity handle file not existence
+startupPopUp()
+function startupPopUp() {
+  rl.question(
+    '\nWhat would you like to do ? (Create, Delete, Edit, Rename, list, view, exit)',
+    function (action) {
+      promptcases(action)
+    },
+  )
+}
 function promptcases(action) {
-    action.toLowerCase()
-    switch (action) {
-        case 'delete':
-           promptDelete()
-            break;
-        case 'create':
-            promptCreate()
-            break;
-        case 'edit':
-            editFile(fileName)
-            break;
-        case 'rename':
-            renameFile(fileName)
-            break;
-
-        default:
-            break;
-    }
-
-    // return result.task
-
+  switch (action.toLowerCase()) {
+    case 'delete':
+      deletePrompt()
+      break
+    case 'create':
+      createPrompt()
+      break
+    case 'edit':
+      editPrompt()
+      break
+    case 'rename':
+      renamePrompt()
+      break
+    case 'view':
+      viewPrompt()
+      break
+    case 'list':
+      listFiles()
+      break
+    case 'exit':
+      rl.close()
+      break
+    default:
+      invalidPrompt()
+      break
+  }
 }
 
-
-
-function promptCreate() {
-    rl.question('Name of File: ', function (fileName) {
-        rl.question('Add Contents: ', function (content) {
-            createFile(fileName, content)
-
-        })
+function createPrompt() {
+  rl.question('Name of File: ', function (fileName) {
+    rl.question('Add Contents: ', function (content) {
+      createFile(fileName, content)
     })
+  })
 }
-
 
 function createFile(fileName, content) {
-    console.log(content)
-    fs.writeFile(fileName, content + "\n" , function (err, file) {
-        if (err) throw err
-        console.log("Created " + fileName)
-        rl.close();
-    })
+  console.log(content)
+  fs.writeFile(fileName, content + '\n', function (err, file) {
+    if (err) throw err
+    console.log('Created ' + fileName)
+    startupPopUp()
+  })
 }
 
-function promptDelete() {
-    rl.question('Name of File: ', function (fileName) {
-        deleteFile(fileName)
-    })
+function deletePrompt() {
+  rl.question('Name of File: ', function (fileName) {
+    deleteFile(fileName)
+  })
 }
 
 function deleteFile(fileName) {
-    fs.unlink(fileName, function (err) {
-        if (err) throw err
-        console.log('deleted ' + fileName)
-        rl.close();
-    })
+  fs.unlink(fileName, function (err) {
+    if (err) throw err
+    console.log('deleted ' + fileName)
+    startupPopUp()
+  })
 }
 
+function renamePrompt() {
+  rl.question('Name of File: ', function (fileName) {
+    rl.question('New name: ', function (newName) {
+      renameFile(fileName, newName)
+    })
+  })
+}
 
+function renameFile(fileName, newName) {
+  fs.rename(fileName, newName, function (err) {
+    if (err) {
+        console.log('Cannot locate file to rename')
+        startupPopUp()
+    }
+    console.log('File Renamed!')
+    startupPopUp()
+  })
+}
 
+function editPrompt() {
+  rl.question('Name of File: ', function (fileName) {
+    rl.close()
+    runLinuxCmd(fileName, 'vim')
+    console.log('edited')
+    startupPopUp()
+    // startupPopUp()
+  })
+}
 
+// rl.on('close', function () {
+// //   console.log('\nBYE BYE !!!')
+// })
 
+function viewPrompt() {
+  rl.question('Name of File: ', function (fileName) {
+    rl.close()
+    runLinuxCmd(fileName, 'cat')
+    startupPopUp()
+  })
+}
 
+function view() {}
 
+function runLinuxCmd(fileName, command) {
+//   rl.close()
+  const action = process.env.EDITOR || command
+  const child = child_process.spawn(action, [`${__dirname}/${fileName}`], {
+    stdio: 'inherit',
+  })
+  child.on('exit', function (e, code) {
+      console.log('edited')
+  })
+}
 
-// const prompt = require('prompt')
+function listFiles() {
+  const ls = spawn('ls')
+  ls.stdout.on('data', (data) => {
+    console.log(`listed files: \n${data}`)
+  })
 
-// prompt.start()
+  ls.stderr.on('data', (data) => {
+    console.log(`stderr: ${data}`)
+  })
 
-// console.log(' Choose Action: Delete, edit, create, rename')
+  ls.on('error', (error) => {
+    console.log(`error: ${error.message}`)
+  })
 
+  ls.on('close', (code) => {
+    startupPopUp()
+  })
+}
 
-// // prompter()
-
-// // function prompter() {
-// //     const fileArray = ['action', 'filename']
-// //     return promptFn(fileArray)
-// // }
-
-// var test;
-// actionPrompter('action')
-
-// function actionPrompter(action) {
-//     prompt.get(action, function (err, event) {
-//         if (err) {
-//             return onErr(err)
-//         }
-//         promptcases(event.action)
-//     })
-// }
-
-
-// function promptcases(action) {
-//     action.toLowerCase()
-//     switch (action) {
-//         case 'delete':
-//             deleteFile(fileName)
-//             break;
-//         case 'create':
-//             prompt2fn(fileName, ["text"])
-//             // createFile(prompt2fn([text]))
-//             break;
-//         case 'edit':
-//             editFile(fileName)
-//             break;
-//         case 'rename':
-//             renameFile(fileName)
-//             break;
-
-//         default:
-//             break;
-//     }
-
-//     // return result.task
-
-// }
-
-
-
-
-
-
-
-// // function promptFn(fileArray) {
-// //     prompt.get(fileArray, function (err, result) {
-// //         if (err) {
-// //             return onErr(err)
-// //         }
-// //         console.log('Prompt 1 ran')
-// //         promptcases(result.action, result.filename)
-// //         // console.log('Command-line input received:')
-
-
-// //     })
-// // }
-
-// // function prompt2fn(fileName, fileArray) {
-// //     prompt.get(fileArray, function (err, file) {
-// //         if (err) {
-// //             return onErr(err)
-// //         }
-// //         // console.log('file at createFile')
-// //         createFile(fileName, file.text)
-// //     })
-// // }
-
-// // function promptcases(task, fileName) {
-// //     console.log(task, fileName)
-// //     task.toLowerCase()
-// //     switch (task) {
-// //         case 'delete':
-// //             deleteFile(fileName)
-// //             break;
-// //         case 'create':
-// //             prompt2fn(fileName, ["text"])
-// //             // createFile(prompt2fn([text]))
-// //             break;
-// //         case 'edit':
-// //             editFile(fileName)
-// //             break;
-// //         case 'rename':
-// //             renameFile(fileName)
-// //             break;
-
-// //         default:
-// //             break;
-// //     }
-
-// //     // return result.task
-
-// // }
-
-// function onErr(err) {
-//     console.log(err)
-//     return 1
-// }
-
-
-// function promptcreatefileProps(fileObj){
-//     prompt.get(action, function (err, event) {
-//         if (err) {
-//             return onErr(err)
-//         }
-
-//     })
-// }
-
-
-// function createFile(fileName, text) {
-//     fs.writeFile(fileName, text, function (err, file) {
-//         if (err) throw err
-//         console.log('file', file)
-//     })
-// }
-
-// function editFile(fileName, text) {
-//     fs.appendFile(fileName, text, function (err) {
-//         if (err) throw err
-//         console.log('Saved!')
-//     })
-
-// }
-
-// function deleteFile(fileName) {
-//     fs.unlink(fileName, function (err) {
-//         if (err) throw err
-//         console.log('File deleted!')
-//     })
-// }
-
-// function renameFile(fileName) {
-//     fs.rename('mynewfile1.txt', 'myrenamedfile.txt', function (err) {
-//         if (err) throw err
-//         console.log('File Renamed!')
-//     })
-// }
-
+function invalidPrompt() {
+  console.log('invalid command')
+  startupPopUp()
+}
 
